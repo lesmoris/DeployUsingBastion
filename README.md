@@ -1,1 +1,1 @@
-# DeployUsingBastion
+# An example of how to deploy using Bastion instead of the VM's public IP

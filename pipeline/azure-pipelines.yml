@@ -1,0 +1,43 @@
+trigger:
+- develop
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: isMasterBuild
+  value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/master') }}
+- name: isDevelopBuild
+  value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/development') }}
+- name: isNightlyBuild
+  value: ${{ eq(variables['Build.Reason'], 'Schedule') }}  
+- name: isPR
+  value: ${{ eq(variables['Build.Reason'], 'PullRequest') }}  
+- name: isTagBuild
+  value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/tags/') }}  
+# For debugging purposes. Enable it here, or add the var to the build run in AzDevops
+# - name: system.debug
+#   value: true
+
+stages:
+- template: build.yml
+
+- ${{ if and( eq(variables['isPR'], false), ne(variables['isMasterBuild'], true), ne(variables['isTagBuild'], true) ) }}:
+  - template: deploy.yml
+    parameters: 
+      serviceConnection: deployUsingBastion-dev-builder
+      environment: deployUsingBastion-DEV
+      environmentName: DEV
+      variableGroup: deployUsingBastion-DEV
+
+# If PR, do not deploy
+# If NightlyBuild, then do not release master. Just run the VeraCode analysis
+# If build source is master or a tag, deploy it in PROD
+- ${{ if and( eq(variables['isPR'], false), or( and( eq(variables['isMasterBuild'], true), eq(variables['isNightlyBuild'], false) ), eq(variables['isTagBuild'], true) ) ) }}:
+  - template: deploy.yml
+    parameters: 
+      serviceConnection: deployUsingBastion-prod-builder
+      environment: deployUsingBastion-PROD
+      environmentName: PROD
+      variableGroup: deployUsingBastion-PROD

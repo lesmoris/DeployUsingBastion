@@ -1,0 +1,47 @@
+stages:
+- stage: Build
+  displayName: Build Stage
+
+  jobs:
+  - job: Build_Code
+    displayName: Build code
+
+    steps:
+    - checkout: self
+      persistCredentials: true
+      
+    - task: Npm@1
+      displayName: 'npm install'
+      inputs:
+        command: install
+  
+    - task: Grunt@0
+      displayName: grunt default
+      inputs:
+        gruntFile: 'Gruntfile.js' 
+        targets: default
+        arguments: '--force'
+  
+    - task: Grunt@0
+      displayName: grunt release
+      inputs:
+        gruntFile: 'Gruntfile.js' 
+        targets: release
+        arguments: '--force'
+  
+    - task: ArchiveFiles@2
+      displayName: 'Generate a tgz package'
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)/release/deployUsingBastion/'
+        includeRootFolder: true
+        archiveType: 'tar'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/deployUsingBastion.tgz'
+        replaceExistingArchive: true
+  
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/deployUsingBastion.tgz'
+        ArtifactName: 'deployUsingBastionn'
+        publishLocation: 'Container'  
+ 
